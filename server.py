@@ -55,7 +55,12 @@ class Client(threading.Thread):
             data = self.client.recv(self.size)
             if 'exit' in data:
                 break
+            if 'status' in data:
+                self.client.send("status ok")
+            else:
+                self.client.send("pesan diterima")
             print data.strip()
+
 
 if __name__ == "__main__":
     server_socket = Server()
