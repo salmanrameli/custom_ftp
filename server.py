@@ -3,27 +3,60 @@ import threading
 import select
 import sys
 
-server_address = ('127.0.0.1', 51000)
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(server_address)
-server_socket.listen(5)
+class Server:
+    def __init__(self):
+        self.host = '127.0.0.1'
+        self.port = 51000
+        self.backlog = 5
+        self.size = 1024
+        self.server = None
+        self.threads = []
 
-input_socket = [server_socket]
+    def open_socket(self):
+        try:
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind((self.host, self.port))
+            self.server_socket.listen(5)
+        except socket.error, (value, message):
+            if self.server_socket:
+                self.server_socket.close()
+            print "error: " + message
+            sys.exit(1)
 
-try:
-    while True:
-        read_ready, write_ready, exception = select.select(input_socket, [], [])
+    def run(self):
+        self.open_socket()
+        input_client = [self.server_socket]
 
-        for client in read_ready:
-            if client == server_socket:
-                client_socket, client_address = server_socket.accept()
-                input_socket.append(client_socket)
+        try:
+            while True:
+                read_ready, write_ready, exception = select.select(input_client, [], [])
 
-            else:
-                data = client.recv(1024)
-                print data.strip()
+                for ready in read_ready:
+                    if ready == self.server_socket:
+                        client_service = Client(self.server_socket.accept())
+                        client_service.start()
+                        self.threads.append(client_service)
 
-except KeyboardInterrupt:
-    server_socket.close()
-    sys.exit(0)
+        except KeyboardInterrupt:
+            self.server_socket.close()
+            sys.exit(0)
+
+
+class Client(threading.Thread):
+    def __init__(self,(client, address)):
+        threading.Thread.__init__(self)
+        self.client = client
+        self.address = address
+        self.size = 1024
+
+    def run(self):
+        while True:
+            data = self.client.recv(self.size)
+            if 'exit' in data:
+                break
+            print data.strip()
+
+if __name__ == "__main__":
+    server_socket = Server()
+    server_socket.run()
