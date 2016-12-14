@@ -5,7 +5,10 @@ client_socket.connect(('127.0.0.1', 51000))
 
 try:
     while True:
-        message = raw_input()
+        message = raw_input('> ')
+        if message == 'exit':
+            client_socket.send(message)
+            break
         client_socket.send(message)
 
 except KeyboardInterrupt:
