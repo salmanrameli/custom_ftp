@@ -3,7 +3,8 @@ import threading
 import select
 import sys
 import os
-
+from os import listdir
+from os.path import isfile, join
 
 class Server:
     def __init__(self):
@@ -61,6 +62,7 @@ class Client(threading.Thread):
         self.client.send('220 Welcome!\r\n')
         while True:
             data = self.client.recv(self.size)
+            print data.strip()
             if 'status' in data:
                 self.client.send("status ok")
             if data == 'QUIT':
@@ -75,9 +77,17 @@ class Client(threading.Thread):
                 message = data.strip().split()
                 os.remove(message[1])
                 self.client.send("File " + message[1] + " berhasil dihapus")
-            print data.strip()
-        pass
 
+            if data == 'LIST':
+                self.client.send("150 Here comes the directory listing. \r\n")
+                print 'list', os.getcwd()
+                mypath = os.getcwd()
+                for f in os.listdir(mypath):
+                    if isfile(join(mypath, f)):
+                        filename = os.path.basename(f)
+                        print filename
+                        self.client.send(filename + '\r\n')
+                self.client.send('226 Directory send OK.\r\n')
 
 if __name__ == "__main__":
     server_socket = Server()
