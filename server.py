@@ -62,13 +62,11 @@ class Client(threading.Thread):
             data = self.client.recv(self.size)
             if 'status' in data:
                 self.client.send("status ok")
-            if 'QUIT' in data:
+            if data == 'QUIT':
                 self.client.send("221 Goodbye.\r\n")
                 self.stop()
                 print "Menerima %d koneksi" %len(server_socket.threads)
                 break
-            else:
-                self.client.send("pesan diterima")
             print data.strip()
         pass
 
