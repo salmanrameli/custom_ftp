@@ -65,18 +65,21 @@ class Client(threading.Thread):
             print data.strip()
             if 'status' in data:
                 self.client.send("status ok")
+
             if data == 'QUIT':
                 self.client.send("221 Goodbye.\r\n")
                 self.stop()
-                print "Menerima %d koneksi" %len(server_socket.threads)
+                print "Got %d connection" %len(server_socket.threads)
                 break
+
             if data == 'PWD':
                 pwd = os.getcwd()
                 self.client.send(pwd)
+
             if 'DELE' in data:
                 message = data.strip().split()
                 os.remove(message[1])
-                self.client.send("File " + message[1] + " berhasil dihapus")
+                self.client.send("250 File " + message[1] + " successfully deleted")
 
             if data == 'LIST':
                 self.client.send("150 Here comes the directory listing. \r\n")
@@ -88,6 +91,12 @@ class Client(threading.Thread):
                         print filename
                         self.client.send(filename + '\r\n')
                 self.client.send('226 Directory send OK.\r\n')
+
+            if 'MKD' in data:
+                path = os.getcwd()
+                message = data.strip().split()
+                os.mkdir(path + '/' + message[1])
+                self.client.send("257 Directory " + message[1] + " successfully created")
 
 if __name__ == "__main__":
     server_socket = Server()

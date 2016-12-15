@@ -17,12 +17,13 @@ try:
                 
                 client_socket.send(message)
                 recv_message = client_socket.recv(1024)
-                while(recv_message):
-                    if '226' in recv_message:
-                        print recv_message.strip()
-                        break
-                    print recv_message.strip()
-                    recv_message = client_socket.recv(1024)
+                print recv_message.strip()
+                # while(recv_message):
+                #     if '226' in recv_message:
+                #         print recv_message.strip()
+                #         break
+                #     print recv_message.strip()
+                #     recv_message = client_socket.recv(1024)
                     
 
                 
