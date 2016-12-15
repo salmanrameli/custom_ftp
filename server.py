@@ -37,6 +37,7 @@ class Server:
                         client_service = Client(self.server_socket.accept())
                         client_service.start()
                         self.threads.append(client_service)
+                        print "Menerima %d koneksi" %len(self.threads)
 
         except KeyboardInterrupt:
             self.server_socket.close()
@@ -50,16 +51,26 @@ class Client(threading.Thread):
         self.address = address
         self.size = 1024
 
+    def stop(self):
+        self.running = False
+        self.client.close()
+        server_socket.threads.pop()
+
     def run(self):
+        self.client.send('220 Welcome!\r\n')
         while True:
             data = self.client.recv(self.size)
-            if 'exit' in data:
-                break
             if 'status' in data:
                 self.client.send("status ok")
+            if 'QUIT' in data:
+                self.client.send("221 Goodbye.\r\n")
+                self.stop()
+                print "Menerima %d koneksi" %len(server_socket.threads)
+                break
             else:
                 self.client.send("pesan diterima")
             print data.strip()
+        pass
 
 
 if __name__ == "__main__":
