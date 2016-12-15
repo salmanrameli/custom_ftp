@@ -17,8 +17,7 @@ try:
             
             client_socket.send(message)
             recv_message = client_socket.recv(1024)
-            if 'pesan diterima' not in recv_message:
-                print recv_message.strip()
+            print recv_message.strip()
                 
 
 except KeyboardInterrupt:
