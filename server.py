@@ -71,6 +71,10 @@ class Client(threading.Thread):
             if data == 'PWD':
                 pwd = os.getcwd()
                 self.client.send(pwd)
+            if 'DELE' in data:
+                message = data.strip().split()
+                os.remove(message[1])
+                self.client.send("File " + message[1] + " berhasil dihapus")
             print data.strip()
         pass
 
