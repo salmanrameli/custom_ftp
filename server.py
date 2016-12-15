@@ -2,6 +2,7 @@ import socket
 import threading
 import select
 import sys
+import os
 
 
 class Server:
@@ -67,6 +68,9 @@ class Client(threading.Thread):
                 self.stop()
                 print "Menerima %d koneksi" %len(server_socket.threads)
                 break
+            if data == 'PWD':
+                pwd = os.getcwd()
+                self.client.send(pwd)
             print data.strip()
         pass
 
