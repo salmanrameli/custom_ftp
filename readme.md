@@ -4,7 +4,7 @@
 - [x] Keluar aplikasi (QUIT: 4.1.1)
 - [ ] Unduh (RETR: 4.1.3)
 - [ ] Unggah (STOR: 4.1.3)
-- [ ] Mengganti nama file (RNTO: 4.1.3)
+- [x] Mengganti nama file (RNTO: 4.1.3)
 - [x] Menghapus file (DELE: 4.1.3) 
 - [ ] Menghapus direktori (RMD: 4.1.3)
 - [x] Membuat direktori (MKD: 4.1.3)
