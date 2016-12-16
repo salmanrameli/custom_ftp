@@ -18,13 +18,15 @@ class Server:
 
     def open_socket(self):
         try:
+            print "Starting server"
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(5)
+            print "Server started succesfully"
         except socket.error, (value, message):
             if self.server_socket:
                 self.server_socket.close()
-            print "error: " + message
+            print "Failed to start. Error: " + message
             sys.exit(1)
 
     def run(self):
@@ -40,7 +42,7 @@ class Server:
                         client_service = Client(self.server_socket.accept())
                         client_service.start()
                         self.threads.append(client_service)
-                        print "Menerima %d koneksi" %len(self.threads)
+                        print "Got %d connection" %len(self.threads)
 
         except KeyboardInterrupt:
             self.server_socket.close()
@@ -116,6 +118,10 @@ class Client(threading.Thread):
                     print os.getcwd()
                 self.client.send("250 Ok.")
 
+            if 'RNTO' in data:
+                message = data.strip().split()
+                os.rename(message[1], message[2])
+                self.client.send("250 Renamed " + message[1] + " to " + message[2])
 
 if __name__ == "__main__":
     server_socket = Server()
