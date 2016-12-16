@@ -14,6 +14,7 @@ class Server:
         self.size = 1024
         self.server = None
         self.threads = []
+        self.basedir = os.path.abspath('.')
 
     def open_socket(self):
         try:
@@ -52,6 +53,7 @@ class Client(threading.Thread):
         self.client = client
         self.address = address
         self.size = 1024
+        self.basedir = server_socket.basedir
 
     def stop(self):
         self.running = False
@@ -59,6 +61,8 @@ class Client(threading.Thread):
         server_socket.threads.pop()
 
     def run(self):
+        os.chdir(self.basedir)
+        print self.basedir
         self.client.send('220 Welcome!\r\n')
         while True:
             data = self.client.recv(self.size)
@@ -97,6 +101,21 @@ class Client(threading.Thread):
                 message = data.strip().split()
                 os.mkdir(path + '/' + message[1])
                 self.client.send("257 Directory " + message[1] + " successfully created")
+
+            if 'CWD' in data: #masih ngebug kalau >1 client
+                message = data.strip().split()
+                chdir = message[1]
+                if(chdir == '/'):
+                    os.chdir(self.basedir)
+                    print self.basedir
+                    path = os.getcwd()
+                    print path
+                else:
+                    chdir.strip('/')
+                    os.chdir(os.path.join(self.basedir, chdir).strip('/'))
+                    print os.getcwd()
+                self.client.send("250 Ok.")
+
 
 if __name__ == "__main__":
     server_socket = Server()
