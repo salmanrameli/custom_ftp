@@ -7,7 +7,7 @@
 - [ ] Mengganti nama file (RNTO: 4.1.3)
 - [x] Menghapus file (DELE: 4.1.3) 
 - [ ] Menghapus direktori (RMD: 4.1.3)
-- [ ] Membuat direktori (MKD: 4.1.3)
+- [x] Membuat direktori (MKD: 4.1.3)
 - [x] Mencetak direktori aktif (PWD: 4.1.3)
 - [ ] Mendaftar file dan direktori (LIST: 4.1.3)
 - [ ] HELP: 4.1.3
