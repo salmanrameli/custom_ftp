@@ -42,7 +42,7 @@ class Server:
                         client_service = Client(self.server_socket.accept())
                         client_service.start()
                         self.threads.append(client_service)
-                        print "Got %d connection" %len(self.threads)
+                        print "Got %d connection\n" %len(self.threads)
 
         except KeyboardInterrupt:
             self.server_socket.close()
@@ -64,18 +64,16 @@ class Client(threading.Thread):
 
     def run(self):
         os.chdir(self.basedir)
-        print self.basedir
+        #print self.basedir
         self.client.send('220 Welcome!\r\n')
         while True:
             data = self.client.recv(self.size)
             print data.strip()
-            if 'status' in data:
-                self.client.send("status ok")
 
             if data == 'QUIT':
                 self.client.send("221 Goodbye.\r\n")
                 self.stop()
-                print "Got %d connection" %len(server_socket.threads)
+                print "Got %d connection " %len(server_socket.threads)
                 break
 
             if data == 'PWD':
@@ -122,6 +120,30 @@ class Client(threading.Thread):
                 message = data.strip().split()
                 os.rename(message[1], message[2])
                 self.client.send("250 Renamed " + message[1] + " to " + message[2])
+
+            if 'STOR' in data:
+                message = data.strip().split()
+                name = message[1].split(".")
+                #print name[1]
+
+                received_file = name[0] + "_received." + name[1]
+
+                retrieve = open(received_file, 'wb')
+                received = self.client.recv(1024)
+                retrieve.write(received)
+                while received:
+                    received = self.client.recv(1024)
+
+                    if not received:
+                        received = self.client.recv(1024)
+                        retrieve.write(received)
+
+                        received_file.close()
+                        self.client.send("got the data")
+                        break
+
+                    else:
+                        retrieve.write(received)
 
 if __name__ == "__main__":
     server_socket = Server()
