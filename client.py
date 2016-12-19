@@ -53,8 +53,7 @@ try:
                 recv_message = client_socket.recv(buff)
                 reply = recv_message.strip().split()
                 size = int(reply[4])
-                print size
-                received = panjang = 0
+                received = 0
                 f = ""
                 filename = reply[2].split(".")
                 received_file = filename[0] + "_downloaded." + filename[1]
@@ -68,14 +67,15 @@ try:
                         for data in recv_data:
                             received += len(data)
                             if received < size:
+                                print received
                                 f += data
                             else:
                                 recv_message += data
                         break
-
+                print recv_message.strip()
                 downloaded.write(f)
                 downloaded.close()
-                print recv_message.strip()
+                
 
             elif message == 'HELP':
                 client_socket.send(message)
