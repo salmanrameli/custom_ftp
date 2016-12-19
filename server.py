@@ -43,6 +43,12 @@ class Server:
             print "Failed to start. Error: " + message
             sys.exit(1)
 
+    def PASV(self):
+        self.pasv_mode = True
+        self.servsock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.servsock.bind((self.host,0))
+        self.servsock.listen(1)
+
     def run(self):
         self.open_socket()
         input_client = [self.server_socket]
@@ -144,14 +150,13 @@ class Client(threading.Thread):
                     message = data.strip().split()
                     chdir = message[1]
                     if(chdir == '/'):
-                        os.chdir("..")
+                        os.chdir(self.basedir)
                         print self.basedir
                         path = os.getcwd()
                         print path
                     else:
-                        chdir = chdir.strip('/')
-                        #self.basedir = os.path.join(self.basedir, chdir)
-                        self.basedir = os.chdir(chdir)
+                        chdir.strip('/')
+                        self.basedir = os.path.join(self.basedir, chdir)
                         print self.basedir
                         #os.chdir(os.path.join(self.basedir, chdir).strip('/'))
                         #print os.getcwd()
@@ -165,18 +170,19 @@ class Client(threading.Thread):
                 if 'RETR' in data:
                     message = data.strip().split()
                     filesize = os.path.getsize(message[1])
+                    print filesize
+                    self.client.send("250 Sending " + message[1] + " filesize " + str(filesize) + "\r\n")
+                    self.client.send("250 Completed\r\n")
                     open_file = open(message[1], 'rb')
-                    self.client.send("250 Sending " + message[1] + " filesize " + str(filesize))
 
-                    data_file = open_file.read(1024)
                     while filesize > 0:
-                        self.client.send(data_file)
-                        data_file = open_file.read(1024)
-                        filesize -= 1024
-                    if filesize <= 0:
-                        open_file.close()
-                        self.client.send("250 Completed")
-                    self.client.send("250 Completed")
+                        if filesize <= 0:
+                            open_file.close()
+                            break
+                        else:
+                            data_file = open_file.read(1024)
+                            self.client.send(data_file)
+                            filesize -= len(data_file)
 
                 if 'STOR' in data:
                     message = data.strip().split()
