@@ -52,21 +52,29 @@ try:
                 client_socket.send(message)
                 recv_message = client_socket.recv(buff)
                 reply = recv_message.strip().split()
-                size = float(reply[4])
-                received = 0
+                size = int(reply[4])
+                print size
+                received = panjang = 0
+                f = ""
                 filename = reply[2].split(".")
                 received_file = filename[0] + "_downloaded." + filename[1]
 
                 downloaded = open(received_file, "wb")
-                recv_data = client_socket.recv(buff)
                 while received < size:
-                    downloaded.write(recv_data)
-                    received += buff
-                    if received >= size:
-                        downloaded.close()
-                if received >= size:
-                    downloaded.close()
-                recv_message = client_socket.recv(buff)
+                    recv_data = client_socket.recv(buff)
+                    f += recv_data
+                    received += len(recv_data)
+                    if received == (size-buff):
+                        for data in recv_data:
+                            received += len(data)
+                            if received < size:
+                                f += data
+                            else:
+                                recv_message += data
+                        break
+
+                downloaded.write(f)
+                downloaded.close()
                 print recv_message.strip()
 
             elif message == 'HELP':
