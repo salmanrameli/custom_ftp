@@ -3,8 +3,19 @@ import threading
 import select
 import sys
 import os
+import time
 from os import listdir
 from os.path import isfile, join
+
+default_commands = ["USER", "PASS", "ACCT", "CWD", "CDUP", "SMNT", "QUIT", "REIN",
+"PORT", "PASV", "TYPE", "STRU", "MODE", "RETR", "STOR", "STOU", "APPE", "ALLO",
+"REST", "RNFR", "RNTO", "ABOR", "DELE", "RMD", "MKD", "PWD", "LIST", "NLST", "SITE",
+"SYST", "STAT", "HELP", "NOOP"]
+
+user_name = ["a", "b"]
+user_pass = ["a", "b"]
+user_auth = [0, 0]
+user_add = [0, 0]
 
 class Server:
     def __init__(self):
@@ -15,6 +26,9 @@ class Server:
         self.server = None
         self.threads = []
         self.basedir = os.path.abspath('.')
+        self.commands = ["USER", "PASS", "CWD", "QUIT", "RETR", "STOR", "RNTO", "DELE",
+                        "MKD", "PWD", "LIST", "HELP", "RMD"]
+
 
     def open_socket(self):
         try:
@@ -69,82 +83,131 @@ class Client(threading.Thread):
         while True:
             data = self.client.recv(self.size)
             print data.strip()
+            datacommand = data.split()[0]
 
-            if data == 'QUIT':
-                self.client.send("221 Goodbye.\r\n")
-                self.stop()
-                print "Got %d connection " %len(server_socket.threads)
-                break
+            if datacommand in server_socket.commands:
+                if data == 'QUIT':
+                    self.client.send("221 Goodbye.\r\n")
+                    self.stop()
+                    print "Got %d connection " %len(server_socket.threads)
+                    break
 
-            if data == 'PWD':
-                pwd = os.getcwd()
-                self.client.send(pwd)
+                if data == 'PWD':
+                    pwd = os.getcwd()
+                    self.client.send(pwd)
 
-            if 'DELE' in data:
-                message = data.strip().split()
-                os.remove(message[1])
-                self.client.send("250 File " + message[1] + " successfully deleted")
+                if data == 'HELP':
+                    self.client.send("214 The following commands are recognized:\r\n")
+                    i = 1
+                    commands = ''
+                    for command in server_socket.commands:
+                        commands += command.strip() + '\t'
+                        if i % 5 == 0:
+                            commands += ('\n')
+                        i+=1
+                    self.client.send(commands + '\r\n')
 
-            if data == 'LIST':
-                self.client.send("150 Here comes the directory listing. \r\n")
-                print 'list', os.getcwd()
-                mypath = os.getcwd()
-                for f in os.listdir(mypath):
-                    if isfile(join(mypath, f)):
-                        filename = os.path.basename(f)
-                        print filename
-                        self.client.send(filename + '\r\n')
-                self.client.send('226 Directory send OK.\r\n')
+                if 'DELE' in data:
+                    message = data.strip().split()
+                    os.remove(message[1])
+                    self.client.send("250 File " + message[1] + " successfully deleted")
 
-            if 'MKD' in data:
-                path = os.getcwd()
-                message = data.strip().split()
-                os.mkdir(path + '/' + message[1])
-                self.client.send("257 Directory " + message[1] + " successfully created")
+                if data == 'LIST':
+                    self.client.send("150 Here comes the directory listing. \r\n")
+                    print 'list', os.getcwd()
+                    mypath = os.getcwd()
+                    for filename in os.listdir(mypath):
+                        st = os.stat(filename)
+                        fullmode = 'rwxrwxrwx'
+                        permission = ''
+                        for i in range(9):
+                            permission += ((st.st_mode)>>(8-i)&1) and fullmode[i] or '-'
+                        d = (os.path.isdir(filename)) and 'd' or '-'
+                        ftime = time.strftime(' %b %d %H:%M ', time.gmtime(st.st_mtime))
+                        listing = d + permission + '\t' + str(st.st_size) + '\t' + ftime + '\t' + os.path.basename(filename)
+                        self.client.send(listing + '\r\n')
+                    self.client.send('226 Directory send OK.\r\n')
 
-            if 'CWD' in data: #masih ngebug kalau >1 client
-                message = data.strip().split()
-                chdir = message[1]
-                if(chdir == '/'):
-                    os.chdir(self.basedir)
-                    print self.basedir
+                if 'MKD' in data:
                     path = os.getcwd()
-                    print path
-                else:
-                    chdir.strip('/')
-                    os.chdir(os.path.join(self.basedir, chdir).strip('/'))
-                    print os.getcwd()
-                self.client.send("250 Ok.")
+                    message = data.strip().split()
+                    os.mkdir(path + '/' + message[1])
+                    self.client.send("257 Directory " + message[1] + " successfully created")
 
-            if 'RNTO' in data:
-                message = data.strip().split()
-                os.rename(message[1], message[2])
-                self.client.send("250 Renamed " + message[1] + " to " + message[2])
+                if 'RMD' in data:
+                    path = os.getcwd()
+                    message = data.strip().split()
+                    os.rmdir(path + '/' + message[1])
+                    self.client.send("250 Directory " + message[1] + " successfully removed")
 
-            if 'STOR' in data:
-                message = data.strip().split()
-                name = message[1].split(".")
-                #print name[1]
-
-                received_file = name[0] + "_received." + name[1]
-
-                retrieve = open(received_file, 'wb')
-                received = self.client.recv(1024)
-                retrieve.write(received)
-                while received:
-                    received = self.client.recv(1024)
-
-                    if not received:
-                        received = self.client.recv(1024)
-                        retrieve.write(received)
-
-                        received_file.close()
-                        self.client.send("got the data")
-                        break
-
+                if 'CWD' in data: #masih ngebug kalau >1 client
+                    message = data.strip().split()
+                    chdir = message[1]
+                    if(chdir == '/'):
+                        os.chdir(self.basedir)
+                        print self.basedir
+                        path = os.getcwd()
+                        print path
                     else:
-                        retrieve.write(received)
+                        chdir.strip('/')
+                        self.basedir = os.path.join(self.basedir, chdir)
+                        print self.basedir
+                        #os.chdir(os.path.join(self.basedir, chdir).strip('/'))
+                        #print os.getcwd()
+                    self.client.send("250 Ok.")
 
+                if 'RNTO' in data:
+                    message = data.strip().split()
+                    os.rename(message[1], message[2])
+                    self.client.send("250 Renamed " + message[1] + " to " + message[2])
+
+                if 'STOR' in data:
+                    message = data.strip().split()
+                    name = message[1].split(".")
+                    #print name[1]
+
+                    received_file = name[0] + "_received." + name[1]
+
+                    retrieve = open(received_file, 'wb')
+                    received = self.client.recv(1024)
+                    retrieve.write(received)
+                    while received:
+                        received = self.client.recv(1024)
+
+                        if not received:
+                            received = self.client.recv(1024)
+                            retrieve.write(received)
+
+                            received_file.close()
+                            self.client.send("got the data")
+                            break
+
+                        else:
+                            retrieve.write(received)
+
+                if 'USER' in data:
+                    message = data.strip().split()
+                    name = message[1]
+                    if name in user_name:
+                        self.client.send("331 User %s OK. Password required.\r\n" % name)
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
+                if 'PASS' in data:
+                    message = data.strip().split()
+                    password = message[1]
+                    if password in user_pass:
+                        print name
+                        self.client.send("230 User %s logged in, proceed. \r\n" % password)
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
+
+            else:
+                if datacommand in default_commands:
+                    self.client.send("202 Command not implemented, superfluous at this site.")
+                else:
+                    self.client.send("500 Syntax error, command unrecognized.")
 if __name__ == "__main__":
     server_socket = Server()
     server_socket.run()
