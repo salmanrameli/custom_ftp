@@ -144,13 +144,14 @@ class Client(threading.Thread):
                     message = data.strip().split()
                     chdir = message[1]
                     if(chdir == '/'):
-                        os.chdir(self.basedir)
+                        os.chdir("..")
                         print self.basedir
                         path = os.getcwd()
                         print path
                     else:
-                        chdir.strip('/')
-                        self.basedir = os.path.join(self.basedir, chdir)
+                        chdir = chdir.strip('/')
+                        #self.basedir = os.path.join(self.basedir, chdir)
+                        self.basedir = os.chdir(chdir)
                         print self.basedir
                         #os.chdir(os.path.join(self.basedir, chdir).strip('/'))
                         #print os.getcwd()
