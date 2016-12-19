@@ -12,6 +12,11 @@ default_commands = ["USER", "PASS", "ACCT", "CWD", "CDUP", "SMNT", "QUIT", "REIN
 "REST", "RNFR", "RNTO", "ABOR", "DELE", "RMD", "MKD", "PWD", "LIST", "NLST", "SITE",
 "SYST", "STAT", "HELP", "NOOP"]
 
+user_name = ["a", "b"]
+user_pass = ["a", "b"]
+user_auth = [0, 0]
+user_add = [0, 0]
+
 class Server:
     def __init__(self):
         self.host = '127.0.0.1'
@@ -179,6 +184,25 @@ class Client(threading.Thread):
 
                         else:
                             retrieve.write(received)
+
+                if 'USER' in data:
+                    message = data.strip().split()
+                    name = message[1]
+                    if name in user_name:
+                        self.client.send("331 User %s OK. Password required.\r\n" % name)
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
+                if 'PASS' in data:
+                    message = data.strip().split()
+                    password = message[1]
+                    if password in user_pass:
+                        print name
+                        self.client.send("230 User %s logged in, proceed. \r\n" % password)
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
+
             else:
                 if datacommand in default_commands:
                     self.client.send("202 Command not implemented, superfluous at this site.")
