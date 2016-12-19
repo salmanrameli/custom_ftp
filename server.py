@@ -43,12 +43,6 @@ class Server:
             print "Failed to start. Error: " + message
             sys.exit(1)
 
-    def PASV(self):
-        self.pasv_mode = True
-        self.servsock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.servsock.bind((self.host,0))
-        self.servsock.listen(1)
-
     def run(self):
         self.open_socket()
         input_client = [self.server_socket]
@@ -150,13 +144,14 @@ class Client(threading.Thread):
                     message = data.strip().split()
                     chdir = message[1]
                     if(chdir == '/'):
-                        os.chdir(self.basedir)
+                        os.chdir("..")
                         print self.basedir
                         path = os.getcwd()
                         print path
                     else:
-                        chdir.strip('/')
-                        self.basedir = os.path.join(self.basedir, chdir)
+                        chdir = chdir.strip('/')
+                        #self.basedir = os.path.join(self.basedir, chdir)
+                        self.basedir = os.chdir(chdir)
                         print self.basedir
                         #os.chdir(os.path.join(self.basedir, chdir).strip('/'))
                         #print os.getcwd()
@@ -171,7 +166,7 @@ class Client(threading.Thread):
                     message = data.strip().split()
                     filesize = os.path.getsize(message[1])
                     print filesize
-                    self.client.send("250 Sending " + message[1] + " filesize " + str(filesize) + "\r\n")
+                    self.client.send("150 Sending " + message[1] + " filesize " + str(filesize) + "\r\n")
                     self.client.send("250 Completed\r\n")
                     open_file = open(message[1], 'rb')
 
@@ -186,26 +181,31 @@ class Client(threading.Thread):
 
                 if 'STOR' in data:
                     message = data.strip().split()
+                    filesize = int(message[2])
                     name = message[1].split(".")
 
                     received_file = name[0] + "_uploaded." + name[1]
-
+                    self.client.send("150 Opening data connection for " + message[1] + " filesize " + str(filesize) + "\r\n")
+                    self.client.send("250 Completed\r\n")
+                    f = ""
                     retrieve = open(received_file, 'wb')
-                    received = self.client.recv(1024)
-                    retrieve.write(received)
-                    while received:
-                        received = self.client.recv(1024)
-
-                        if not received:
-                            received = self.client.recv(1024)
-                            retrieve.write(received)
-
-                            received_file.close()
-                            self.client.send("got the data")
+                    received = 0
+                    while received < filesize:
+                        recv_data = self.client.recv(1024)
+                        f += recv_data
+                        received += len(recv_data)
+                        if received == (filesize-1024):
+                            for data in recv_data:
+                                received += len(data)
+                                if received < filesize:
+                                    print received
+                                    f += data
+                                else:
+                                    recv_message += data
                             break
+                    retrieve.write(f)
+                    retrieve.close()
 
-                        else:
-                            retrieve.write(received)
 
                 if 'USER' in data:
                     message = data.strip().split()
