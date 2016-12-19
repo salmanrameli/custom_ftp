@@ -161,12 +161,27 @@ class Client(threading.Thread):
                     os.rename(message[1], message[2])
                     self.client.send("250 Renamed " + message[1] + " to " + message[2])
 
+                if 'RETR' in data:
+                    message = data.strip().split()
+                    filesize = os.path.getsize(message[1])
+                    open_file = open(message[1], 'rb')
+                    self.client.send("250 Sending " + message[1] + " filesize " + str(filesize))
+
+                    data_file = open_file.read(1024)
+                    while filesize > 0:
+                        self.client.send(data_file)
+                        data_file = open_file.read(1024)
+                        filesize -= 1024
+                    if filesize <= 0:
+                        open_file.close()
+                        self.client.send("250 Completed")
+                    self.client.send("250 Completed")
+
                 if 'STOR' in data:
                     message = data.strip().split()
                     name = message[1].split(".")
-                    #print name[1]
 
-                    received_file = name[0] + "_received." + name[1]
+                    received_file = name[0] + "_uploaded." + name[1]
 
                     retrieve = open(received_file, 'wb')
                     received = self.client.recv(1024)
@@ -202,12 +217,12 @@ class Client(threading.Thread):
                     else:
                         self.client.send("530 User cannot log in. \r\n Login failed.")
 
-
             else:
                 if datacommand in default_commands:
                     self.client.send("202 Command not implemented, superfluous at this site.")
                 else:
                     self.client.send("500 Syntax error, command unrecognized.")
+
 if __name__ == "__main__":
     server_socket = Server()
     server_socket.run()
