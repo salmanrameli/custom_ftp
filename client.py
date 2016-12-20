@@ -3,7 +3,7 @@ import os
 
 buff = 1024
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(('127.0.0.1', 51000))
+client_socket.connect(('10.181.1.246', 51000))
 recv_message = client_socket.recv(1024).strip()
 print recv_message
 
@@ -75,7 +75,6 @@ try:
                 print recv_message.strip()
                 downloaded.write(f)
                 downloaded.close()
-                
 
             elif message == 'HELP':
                 client_socket.send(message)
@@ -95,7 +94,9 @@ try:
                 client_socket.send(message)
                 recv_message = client_socket.recv(1024)
                 print recv_message.strip()
-
+        else:
+            recv_message = client_socket.recv(1024)
+            print recv_message.strip()
 
 except KeyboardInterrupt:
     client_socket.close()

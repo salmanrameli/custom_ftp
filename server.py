@@ -4,8 +4,6 @@ import select
 import sys
 import os
 import time
-from os import listdir
-from os.path import isfile, join
 
 default_commands = ["USER", "PASS", "ACCT", "CWD", "CDUP", "SMNT", "QUIT", "REIN",
 "PORT", "PASV", "TYPE", "STRU", "MODE", "RETR", "STOR", "STOU", "APPE", "ALLO",
@@ -17,9 +15,10 @@ user_pass = ["a", "b"]
 user_auth = [0, 0]
 user_add = [0, 0]
 
+
 class Server:
     def __init__(self):
-        self.host = '127.0.0.1'
+        self.host = '10.181.1.246'
         self.port = 51000
         self.backlog = 5
         self.size = 1024
@@ -33,6 +32,7 @@ class Server:
     def open_socket(self):
         try:
             print "Starting server"
+            print "Path: " + os.path.abspath('.')
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(5)
@@ -53,10 +53,11 @@ class Server:
 
                 for ready in read_ready:
                     if ready == self.server_socket:
-                        client_service = Client(self.server_socket.accept())
+                        client_service = Client(self.server_socket.accept(), initpath=os.path.abspath('.'))
                         client_service.start()
+                        print client_service
                         self.threads.append(client_service)
-                        print "Got %d connection\n" %len(self.threads)
+                        print "Got %d connection" % len(self.threads)
 
         except KeyboardInterrupt:
             self.server_socket.close()
@@ -64,12 +65,13 @@ class Server:
 
 
 class Client(threading.Thread):
-    def __init__(self,(client, address)):
+    def __init__(self, (client, address), initpath):
         threading.Thread.__init__(self)
         self.client = client
         self.address = address
         self.size = 1024
         self.basedir = server_socket.basedir
+        os.chdir(initpath)
 
     def stop(self):
         self.running = False
@@ -86,10 +88,39 @@ class Client(threading.Thread):
             datacommand = data.split()[0]
 
             if datacommand in server_socket.commands:
+                if 'USER' in data:
+                    message = data.strip().split()
+                    name = message[1]
+                    if name in user_name:
+                        self.client.send("331 User %s OK. Password required.\r\n" % name)
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
+                if 'PASS' in data:
+                    message = data.strip().split()
+                    password = message[1]
+                    if password in user_pass:
+                        #print name + "????"
+                        self.client.send("230 User %s logged in, proceed. \r\n" % password)
+                        # index = user_name.index(name)
+                        # user_auth[index] = 1
+                        data = self.client.recv(self.size)
+                        print data.strip()
+                        datacommand = data.split()[0]
+
+                    for i in user_auth:
+                        print i
+                    else:
+                        self.client.send("530 User cannot log in. \r\n Login failed.")
+
                 if data == 'QUIT':
                     self.client.send("221 Goodbye.\r\n")
+                    # index = user_name.index(name)
+                    # user_auth[index] = 0
+                    # for i in user_auth:
+                    #     print i
                     self.stop()
-                    print "Got %d connection " %len(server_socket.threads)
+                    print "Got %d connection " % len(server_socket.threads)
                     break
 
                 if data == 'PWD':
@@ -150,7 +181,7 @@ class Client(threading.Thread):
                         print path
                     else:
                         chdir = chdir.strip('/')
-                        #self.basedir = os.path.join(self.basedir, chdir)
+                        #self.basedir = os.path.join('/', os.getcwd(), chdir)
                         self.basedir = os.chdir(chdir)
                         print self.basedir
                         #os.chdir(os.path.join(self.basedir, chdir).strip('/'))
@@ -200,29 +231,11 @@ class Client(threading.Thread):
                                 if received < filesize:
                                     print received
                                     f += data
-                                else:
-                                    recv_message += data
+                                #else:
+                                    #recv_message += data
                             break
                     retrieve.write(f)
                     retrieve.close()
-
-
-                if 'USER' in data:
-                    message = data.strip().split()
-                    name = message[1]
-                    if name in user_name:
-                        self.client.send("331 User %s OK. Password required.\r\n" % name)
-                    else:
-                        self.client.send("530 User cannot log in. \r\n Login failed.")
-
-                if 'PASS' in data:
-                    message = data.strip().split()
-                    password = message[1]
-                    if password in user_pass:
-                        print name
-                        self.client.send("230 User %s logged in, proceed. \r\n" % password)
-                    else:
-                        self.client.send("530 User cannot log in. \r\n Login failed.")
 
             else:
                 if datacommand in default_commands:
