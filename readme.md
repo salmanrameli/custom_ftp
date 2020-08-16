@@ -1,4 +1,4 @@
-#Custom FTP Server & Client#
+# Custom FTP Server & Client #
 - [ ] Autentikasi (USER dan PASS: 4.1.1)
 - [ ] Mengubah direktori aktif (CWD: 4.1.1)
 - [x] Keluar aplikasi (QUIT: 4.1.1)
